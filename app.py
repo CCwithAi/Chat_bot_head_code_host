@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask_cors import CORS
 from dotenv import load_dotenv
 from datetime import datetime
 import os
@@ -19,10 +20,20 @@ if not openai_api_key:
     logger.error("OpenAI API key not found in environment variables!")
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/static/chatbot.js')
+def serve_chatbot_js():
+    return send_from_directory('static', 'chatbot.js')
+
+@app.route('/embedded')
+def embedded():
+    """Route for the embedded version of the chatbot"""
+    return render_template('embedded.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -51,12 +62,18 @@ def chat():
         try:
             # Get response from the chatbot
             chatbot = ChatOpenAI(model=model, api_key=openai_api_key)
-            response = chatbot(messages)
+            response = chatbot.invoke(messages)
+            
+            # Extract the content from the response
+            response_content = response.content if hasattr(response, 'content') else str(response)
 
             # Add AI response to chat history
-            messages.append(AIMessage(content=response.content))
+            messages.append(AIMessage(content=response_content))
 
-            return jsonify({'response': response.content, 'messages': [msg.content for msg in messages]})
+            return jsonify({
+                'reply': response_content,
+                'messages': [msg.content for msg in messages]
+            })
         
         except Exception as e:
             logger.error(f"Error calling OpenAI API: {str(e)}")

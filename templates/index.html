@@ -193,19 +193,22 @@
                 });
 
                 const data = await response.json();
+                console.log('Response data:', data); // Add debug log
                 
-                // Display assistant message
-                appendMessage('assistant', data.response);
-                
-                // Update chat history
-                chatHistory = data.messages;
-                
-                // Scroll to bottom
-                const chatContainer = document.getElementById('chat-container');
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                if (data.error) {
+                    appendMessage('assistant', 'Error: ' + data.error);
+                } else if (data.reply) {
+                    // Display assistant message using the correct field name
+                    appendMessage('assistant', data.reply);
+                    
+                    // Update chat history
+                    chatHistory = data.messages || [];
+                } else {
+                    appendMessage('assistant', 'No response received');
+                }
             } catch (error) {
                 console.error('Error:', error);
-                appendMessage('assistant', 'Sorry, there was an error processing your request.');
+                appendMessage('assistant', 'Error communicating with the server');
             }
         }
 
@@ -215,6 +218,9 @@
             messageDiv.className = `message ${sender}-message`;
             messageDiv.textContent = content;
             chatContainer.appendChild(messageDiv);
+            
+            // Scroll to bottom after adding message
+            chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
         // Allow sending message with Enter key
